@@ -1,0 +1,40 @@
+import requests
+from requests.api import get
+import json
+import time
+
+def build_query(query, page):
+  pre_res = query + '?' if '?' not in query else query + '&'
+  res = pre_res + 'limit=250' + '&page=' + str(page)
+  return(res)
+
+def get_data(query):
+  a=[]
+  api_key= "insert_API_key"
+  headers={
+  'Accept':'application/json',
+  'Authorization':api_key 
+  }
+  request_url = build_query(query, 1)
+  print('Get data for ', query)
+  request = requests.get(request_url, headers=headers)
+  request_header = json.loads(request.headers['x-pagination'])
+  total_pages = int(request_header['total_pages'])
+  print( 'Total pages: ', total_pages)
+  print( 'Total records: ', request_header['total_records'])
+
+  for i in range(1, total_pages+1):
+    request_url = build_query(query, i)
+    request = requests.get(request_url, headers=headers)
+    
+    if request.status_code != 200:
+      print(request.text)
+      print('Retry in 50s...')
+      time.sleep(50)
+      request = requests.get(request_url, headers=headers)
+
+    request_data = json.loads(request.text)['data']
+    a.extend(request_data)
+  return(a)
+
+base_url='https://api.katanamrp.com/v1/'
